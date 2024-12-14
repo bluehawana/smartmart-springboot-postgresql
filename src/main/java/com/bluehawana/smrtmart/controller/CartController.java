@@ -21,7 +21,8 @@ public class CartController {
     public ResponseEntity<CartDTO> getCurrentCart() {
         log.info("Getting current cart");
         try {
-            return ResponseEntity.ok(cartService.getCurrentCart());
+            CartDTO cart = cartService.getCurrentCart(getCurrentUserId());
+            return ResponseEntity.ok(cart);
         } catch (Exception e) {
             log.error("Error getting cart", e);
             return ResponseEntity.internalServerError().build();
@@ -32,7 +33,8 @@ public class CartController {
     public ResponseEntity<CartDTO> addToCart(@RequestBody CartItemDTO cartItem) {
         log.info("Adding item to cart: {}", cartItem);
         try {
-            return ResponseEntity.ok(cartService.addToCart(cartItem));
+            CartDTO updatedCart = cartService.addToCart(getCurrentUserId(), cartItem);
+            return ResponseEntity.ok(updatedCart);
         } catch (ResourceNotFoundException e) {
             log.error("Product not found", e);
             return ResponseEntity.notFound().build();
@@ -48,18 +50,26 @@ public class CartController {
             @RequestBody CartUpdateDTO update) {
         log.info("Updating cart item: {}", itemId);
         try {
-            return ResponseEntity.ok(cartService.updateCartItem(itemId, update));
+            CartDTO updatedCart = cartService.updateCartItem(
+                    getCurrentUserId(),
+                    itemId,
+                    update.getQuantity()
+            );
+            return ResponseEntity.ok(updatedCart);
         } catch (ResourceNotFoundException e) {
             log.error("Cart item not found", e);
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Error updating cart item", e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 
-    @DeleteMapping("/items/{id}")
-    public ResponseEntity<Void> removeFromCart(@PathVariable Integer id) {
-        log.info("Removing item from cart: {}", id);
+    @DeleteMapping("/items/{itemId}")
+    public ResponseEntity<Void> removeFromCart(@PathVariable Integer itemId) {
+        log.info("Removing item from cart: {}", itemId);
         try {
-            cartService.removeFromCart(id);
+            cartService.removeFromCart(getCurrentUserId(), itemId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Error removing from cart", e);
@@ -71,11 +81,17 @@ public class CartController {
     public ResponseEntity<Void> clearCart() {
         log.info("Clearing cart");
         try {
-            cartService.clearCart();
+            cartService.clearCart(getCurrentUserId());
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Error clearing cart", e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    // Helper method to get current user ID
+    private Integer getCurrentUserId() {
+        // TODO: Replace with actual user authentication logic
+        return 1; // Temporary default user ID
     }
 }

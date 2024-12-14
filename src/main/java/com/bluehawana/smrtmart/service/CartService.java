@@ -2,76 +2,44 @@ package com.bluehawana.smrtmart.service;
 
 import com.bluehawana.smrtmart.dto.CartDTO;
 import com.bluehawana.smrtmart.dto.CartItemDTO;
-import com.bluehawana.smrtmart.dto.CartUpdateDTO;
 import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
-import com.bluehawana.smrtmart.model.*;
-import com.bluehawana.smrtmart.repository.*;
+import com.bluehawana.smrtmart.model.Cart;
+import com.bluehawana.smrtmart.model.CartItem;
+import com.bluehawana.smrtmart.repository.CartRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
-@Slf4j
 public class CartService {
     private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
-    private final ProductRepository productRepository;
-    private final UserRepository userRepository;
+    private final CartItemService cartItemService;
 
-    public CartDTO getCurrentCart() {
-        // For testing, using user ID 1. In production, get from security context
-        Cart cart = cartRepository.findByUserId(1)
-                .orElseGet(() -> createNewCart(1));
+    public CartDTO getCurrentCart(Integer userId) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseGet(() -> createNewCart(userId));
         return convertToDTO(cart);
-    }
-
-    public CartDTO addToCart(CartItemDTO cartItemDTO) {
-        Cart cart = cartRepository.findByUserId(1)
-                .orElseGet(() -> createNewCart(1));
-
-        Product product = productRepository.findById(cartItemDTO.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-        CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(cartItemDTO.getProductId()))
-                .findFirst()
-                .orElseGet(() -> {
-                    CartItem newItem = new CartItem();
-                    newItem.setCart(cart);
-                    newItem.setProduct(product);
-                    cart.getItems().add(newItem);
-                    return newItem;
-                });
-
-        cartItem.setQuantity(cartItemDTO.getQuantity());
-        cartRepository.save(cart);
-        return convertToDTO(cart);
-    }
-
-    public void removeFromCart(Integer itemId) {
-        cartItemRepository.findById(itemId)
-                .ifPresent(cartItemRepository::delete);
     }
 
     private Cart createNewCart(Integer userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Cart cart = new Cart();
-        cart.setUser(user);
+        cart.setUserId(userId);
         return cartRepository.save(cart);
     }
 
     private CartDTO convertToDTO(Cart cart) {
+        List<CartItemDTO> itemDTOs = cart.getItems().stream()
+                .map(this::convertToCartItemDTO)
+                .collect(Collectors.toList());
+
         return CartDTO.builder()
                 .id(cart.getId())
-                .items(cart.getItems().stream()
-                        .map(this::convertToCartItemDTO)
-                        .collect(Collectors.toList()))
+                .items(itemDTOs)
                 .totalAmount(calculateTotal(cart))
                 .build();
     }
@@ -79,7 +47,7 @@ public class CartService {
     private CartItemDTO convertToCartItemDTO(CartItem item) {
         return CartItemDTO.builder()
                 .id(item.getId())
-                .productId(item.getProduct().getId())
+                .productId(Math.toIntExact(item.getProduct().getId()))
                 .productName(item.getProduct().getName())
                 .quantity(item.getQuantity())
                 .price(item.getProduct().getPrice())
@@ -93,19 +61,39 @@ public class CartService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public CartDTO updateCartItem(Integer itemId, CartUpdateDTO update) {
-        CartItem cartItem = cartItemRepository.findById(itemId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found"));
-        cartItem.setQuantity(update.getQuantity());
-        cartItemRepository.save(cartItem);
-        return convertToDTO(cartItem.getCart());
+    public CartDTO addToCart(Integer userId, CartItemDTO cartItemDTO) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseGet(() -> createNewCart(userId));
+
+        cartItemService.addItemToCart(cart, cartItemDTO);
+        cart = cartRepository.save(cart);
+
+        return convertToDTO(cart);
     }
 
-    public void clearCart() {
-        cartRepository.findByUserId(1)
-                .ifPresent(cart -> {
-                    cart.getItems().clear();
-                    cartRepository.save(cart);
-                });
+    public CartDTO updateCartItem(Integer userId, Integer itemId, Integer quantity) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+
+        cartItemService.updateItemQuantity(cart, itemId, quantity);
+        cart = cartRepository.save(cart);
+
+        return convertToDTO(cart);
+    }
+
+    public void removeFromCart(Integer userId, Integer itemId) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+
+        cartItemService.removeItem(cart, itemId);
+        cartRepository.save(cart);
+    }
+
+    public void clearCart(Integer userId) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+
+        cart.getItems().clear();
+        cartRepository.save(cart);
     }
 }

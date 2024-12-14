@@ -5,6 +5,7 @@ import com.bluehawana.smrtmart.dto.OrderDTO;
 import com.bluehawana.smrtmart.dto.OrderUpdateDTO;
 import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
 import com.bluehawana.smrtmart.model.Order;
+import com.bluehawana.smrtmart.model.User;
 import com.bluehawana.smrtmart.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -50,5 +51,9 @@ public class OrderService {
         order.setShippingAddress(orderUpdate.getShippingAddress());
         order.setStripePaymentId(orderUpdate.getStripePaymentId());
         return new OrderDTO(orderRepository.save(order));
+    }
+
+    public List<Order> getOrdersByUser(User user) {
+        return orderRepository.findByUser(user);
     }
 }

@@ -1,5 +1,6 @@
 package com.bluehawana.smrtmart;
 
+import com.bluehawana.smrtmart.DataInitializer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
@@ -13,7 +14,7 @@ public class SmrtmartApplication {
 	}
 
 	@Bean
-	CommandLineRunner init(SampleDataGenerator dataGenerator) {
+	CommandLineRunner init(DataInitializer dataGenerator) {
 		return args -> {
 			try {
 				dataGenerator.generateData();

@@ -38,7 +38,7 @@ public class UserService {
         return UserDTO.builder()
                 .id(Math.toIntExact(user.getId()))
                 .email(user.getEmail())
-                .role(user.getRole())
+                .role(String.valueOf(user.getRole()))
                 .enabled(user.isEnabled())
                 .build();
     }

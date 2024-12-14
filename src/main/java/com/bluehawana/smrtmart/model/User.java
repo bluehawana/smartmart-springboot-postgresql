@@ -1,31 +1,27 @@
-// File: src/main/java/com/bluehawana/smrtmart/model/User.java
 package com.bluehawana.smrtmart.model;
 
 import jakarta.persistence.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.Setter;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Data;
 
 @Entity
-@Getter
-@Setter
 @Table(name = "users")
+@Data
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private String email;
-    private String role;
-    private boolean enabled;
 
-    @JsonIgnore
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Cart cart;
+    private String username;
+    private String password;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders = new ArrayList<>();
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
+
+    @Column(nullable = false)
+    private boolean enabled = true;  // Set default value to true
 }
+

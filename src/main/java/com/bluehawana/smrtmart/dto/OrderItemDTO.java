@@ -13,11 +13,12 @@ public class OrderItemDTO {
     private Integer quantity;
     private BigDecimal priceAtTime;
 
-    public OrderItemDTO id(OrderItem orderItem) {
-        this.id = orderItem.getId();
-        this.productName = orderItem.getProduct().getName();
-        this.quantity = orderItem.getQuantity();
-        this.priceAtTime = orderItem.getPriceAtTime();
-        return this;
+    public static OrderItemDTO fromOrderItem(OrderItem orderItem) {
+        return OrderItemDTO.builder()
+                .id(orderItem.getId())
+                .productName(orderItem.getProduct().getName())
+                .quantity(orderItem.getQuantity())
+                .priceAtTime(orderItem.getPriceAtTime())
+                .build();
     }
 }

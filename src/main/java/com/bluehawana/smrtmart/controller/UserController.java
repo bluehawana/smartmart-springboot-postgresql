@@ -17,12 +17,12 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<String> getAllUsers() {
         log.info("Received request to get all users");
         try {
             var users = userService.getAllUsers();
             log.info("Found {} users", users.size());
-            return ResponseEntity.ok(users);
+            return ResponseEntity.ok(users.toString());
         } catch (Exception e) {
             log.error("Error getting users", e);
             return ResponseEntity.internalServerError().body(e.getMessage());

@@ -1,11 +1,11 @@
-// File: src/main/java/com/bluehawana/smrtmart/controller/OrderController.java
 package com.bluehawana.smrtmart.controller;
 
-import com.bluehawana.smrtmart.dto.OrderDTO;
 import com.bluehawana.smrtmart.dto.OrderCreateDTO;
+import com.bluehawana.smrtmart.dto.OrderDTO;
 import com.bluehawana.smrtmart.dto.OrderUpdateDTO;
 import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
 import com.bluehawana.smrtmart.model.Order;
+import com.bluehawana.smrtmart.model.User;
 import com.bluehawana.smrtmart.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,9 +22,17 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders() {
-        log.info("Getting all orders");
-        return ResponseEntity.ok(orderService.getAllOrders());
+    public ResponseEntity<List<Order>> getOrders(@AuthenticationPrincipal User user) {
+        log.info("Getting orders for authenticated user: {}", user.getUsername());
+        if (user != null) {
+            // Fetch orders for authenticated user
+            List<Order> orders = orderService.getOrdersByUser(user);
+            return ResponseEntity.ok(orders);
+        } else {
+            // Fetch all orders for admin role
+            log.info("Fetching all orders for admin");
+            return ResponseEntity.ok(orderService.getAllOrders());
+        }
     }
 
     @GetMapping("/{id}")
@@ -67,11 +75,5 @@ public class OrderController {
             log.error("Order not found with id: {}", id);
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Order>> getUserOrders(@PathVariable Integer userId) {
-        log.info("Getting orders for user: {}", userId);
-        return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
     }
 }
