@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/products/**", "/orders/**", "/users/**", "/cart/**", "/uploads/**").permitAll()
+                        .requestMatchers("/products/**", "/orders/**", "/users/**", "/cart/**", "/uploads/**","/photos/**","/auth/**").permitAll()
                         .anyRequest().authenticated()
                 );
 

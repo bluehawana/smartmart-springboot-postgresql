@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/products")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
@@ -20,18 +21,13 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductDTO>> getAllProducts() {
         List<ProductDTO> products = productService.getAllProducts();
+        // Ensure image URLs are correctly formatted
+        products.forEach(product -> {
+            if (product.getImageUrl() != null && !product.getImageUrl().startsWith("http")) {
+                product.setImageUrl("http://localhost:8080" + product.getImageUrl());
+            }
+        });
         return ResponseEntity.ok(products);
-    }
-
-    @GetMapping("products/{id}")
-    public ResponseEntity<?> getProduct(@PathVariable Integer id) {
-        try {
-            ProductDTO product = productService.getProduct(id);
-            return ResponseEntity.ok(new ApiResponse("Product found", true, product));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404)
-                    .body(new ApiResponse("Product not found", false, null));
-        }
     }
 
     @PostMapping("products")
