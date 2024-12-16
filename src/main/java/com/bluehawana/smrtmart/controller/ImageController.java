@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/uploads")
 @Slf4j
 public class ImageController {
-
     private static final String IMAGES_PATH = "static/uploads/";
 
     @GetMapping("/{filename}")

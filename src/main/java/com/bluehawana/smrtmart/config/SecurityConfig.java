@@ -20,19 +20,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(corsConfigurer -> corsConfigurer.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/products/**",
-                                "/orders/**",
-                                "/users/**",
-                                "/cart/**",
-                                "/uploads/**",
-                                "/photos/**",
-                                "/api/**"
-                        ).permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/**").permitAll()
                 );
         return http.build();
     }
@@ -40,17 +31,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Add both localhost and IP address
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "http://192.168.1.182:3000"  // Add your IP address
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOriginPatterns(List.of(
-                "https://*.vercel.app",
-                "http://localhost:*",
-                "https://*.lite.vusercontent.net",
-                "*" // Use with caution, preferably more specific in production
-        ));
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-        configuration.setAllowedHeaders(List.of("*"));
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

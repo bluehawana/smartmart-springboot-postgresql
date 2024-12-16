@@ -19,6 +19,7 @@ import java.util.List;
 @Slf4j
 public class PhotoController {
 
+
     private static final String UPLOADS_PATH = "static/uploads/";
 
     @GetMapping

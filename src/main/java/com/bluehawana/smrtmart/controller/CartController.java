@@ -7,11 +7,12 @@ import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
 import com.bluehawana.smrtmart.service.CartService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/cart")
+@RequestMapping("/cart")  // Updated to match your API pattern
 @RequiredArgsConstructor
 @Slf4j
 public class CartController {
@@ -23,75 +24,99 @@ public class CartController {
         try {
             CartDTO cart = cartService.getCurrentCart(getCurrentUserId());
             return ResponseEntity.ok(cart);
+        } catch (ResourceNotFoundException e) {
+            log.warn("Cart not found for user {}", getCurrentUserId());
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error getting cart", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error getting cart for user {}", getCurrentUserId(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
         }
     }
 
     @PostMapping("/items")
-    public ResponseEntity<CartDTO> addToCart(@RequestBody CartItemDTO cartItem) {
+    public ResponseEntity<?> addToCart(@RequestBody CartItemDTO cartItem) {
         log.info("Adding item to cart: {}", cartItem);
         try {
+            if (cartItem.getQuantity() <= 0) {
+                return ResponseEntity.badRequest()
+                        .body("Quantity must be greater than 0");
+            }
+
             CartDTO updatedCart = cartService.addToCart(getCurrentUserId(), cartItem);
             return ResponseEntity.ok(updatedCart);
         } catch (ResourceNotFoundException e) {
-            log.error("Product not found", e);
-            return ResponseEntity.notFound().build();
+            log.warn("Product not found: {}", cartItem.getProductId());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Product not found");
         } catch (Exception e) {
-            log.error("Error adding to cart", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error adding item to cart: {}", cartItem, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to add item to cart");
         }
     }
 
     @PutMapping("/items/{itemId}")
-    public ResponseEntity<CartDTO> updateCartItem(
-            @PathVariable Integer itemId,
+    public ResponseEntity<?> updateCartItem(
+            @PathVariable Long itemId,
             @RequestBody CartUpdateDTO update) {
-        log.info("Updating cart item: {}", itemId);
+        log.info("Updating cart item: {} with quantity: {}", itemId, update.getQuantity());
         try {
+            if (update.getQuantity() < 0) {
+                return ResponseEntity.badRequest()
+                        .body("Quantity cannot be negative");
+            }
+
             CartDTO updatedCart = cartService.updateCartItem(
                     getCurrentUserId(),
-                    itemId,
+                    (long) Math.toIntExact(itemId),
                     update.getQuantity()
             );
             return ResponseEntity.ok(updatedCart);
         } catch (ResourceNotFoundException e) {
-            log.error("Cart item not found", e);
-            return ResponseEntity.notFound().build();
+            log.warn("Cart item not found: {}", itemId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Cart item not found");
         } catch (Exception e) {
-            log.error("Error updating cart item", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error updating cart item: {}", itemId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to update cart item");
         }
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<Void> removeFromCart(@PathVariable Integer itemId) {
+    public ResponseEntity<?> removeFromCart(@PathVariable Long itemId) {
         log.info("Removing item from cart: {}", itemId);
         try {
-            cartService.removeFromCart(getCurrentUserId(), itemId);
+            cartService.removeFromCart(getCurrentUserId(), (long) Math.toIntExact(itemId));
             return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException e) {
+            log.warn("Cart item not found: {}", itemId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Cart item not found");
         } catch (Exception e) {
-            log.error("Error removing from cart", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error removing item from cart: {}", itemId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to remove item from cart");
         }
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> clearCart() {
-        log.info("Clearing cart");
+    public ResponseEntity<?> clearCart() {
+        log.info("Clearing cart for user: {}", getCurrentUserId());
         try {
             cartService.clearCart(getCurrentUserId());
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Error clearing cart", e);
-            return ResponseEntity.internalServerError().build();
+            log.error("Error clearing cart for user: {}", getCurrentUserId(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to clear cart");
         }
     }
 
-    // Helper method to get current user ID
-    private Integer getCurrentUserId() {
-        // TODO: Replace with actual user authentication logic
-        return 1; // Temporary default user ID
+    // TODO: Implement proper user authentication
+    private Long getCurrentUserId() {
+        // This should be replaced with actual user authentication logic
+        return (long) Math.toIntExact(3L);
     }
 }

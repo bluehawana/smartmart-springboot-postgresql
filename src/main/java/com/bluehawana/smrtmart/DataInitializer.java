@@ -84,8 +84,8 @@ public class DataInitializer {
     @Transactional
     public void initializeData() {
         try {
-            initializeUsers();
-            initializeProducts();
+            initializeProducts(); // Initialize products first (needed for cart items)
+            initializeUsers();    // Then users and their carts
             log.info("Data initialization successful");
         } catch (Exception e) {
             log.error("Error during data initialization", e);
@@ -137,9 +137,36 @@ public class DataInitializer {
     private void createCartForUser(User user) {
         if (!cartRepository.existsByUserId(user.getId())) {
             Cart cart = new Cart();
-            cart.setUserId(user.getId());
+            cart.setUserId(Long.valueOf(user.getId()));
+
+            // Save cart first
+            cart = cartRepository.save(cart);
+
+            // Add some sample products to cart
+            List<Product> products = productRepository.findAll();
+            if (!products.isEmpty()) {
+                // Add MacBook Pro to first user's cart
+                if (user.getEmail().equals("developer1@example.com") && products.size() >= 1) {
+                    CartItem item1 = new CartItem();
+                    item1.setCart(cart);
+                    item1.setProduct(products.get(0));  // MacBook Pro
+                    item1.setQuantity(1);
+                    cart.getItems().add(item1);
+                }
+
+                // Add AirPods to second user's cart
+                if (user.getEmail().equals("developer2@example.com") && products.size() >= 2) {
+                    CartItem item2 = new CartItem();
+                    item2.setCart(cart);
+                    item2.setProduct(products.get(1));  // AirPods
+                    item2.setQuantity(2);
+                    cart.getItems().add(item2);
+                }
+            }
+
             cartRepository.save(cart);
-            log.info("Created cart for user: {}", user.getEmail());
+            log.info("Created cart with {} items for user: {}",
+                    cart.getItems().size(), user.getEmail());
         }
     }
 
