@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/api/products")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
 public class ProductController {
@@ -30,7 +30,7 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    @PostMapping("products")
+    @PostMapping
     public ResponseEntity<?> createProduct(@Valid @RequestBody ProductDTO productDTO) {
         try {
             ProductDTO createdProduct = productService.createProduct(productDTO);
@@ -41,7 +41,7 @@ public class ProductController {
         }
     }
 
-    @PutMapping("products/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(@PathVariable Integer id,
                                            @Valid @RequestBody ProductDTO productDTO) {
         try {
@@ -56,7 +56,7 @@ public class ProductController {
         }
     }
 
-    @DeleteMapping("products/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Integer id) {
         try {
             productService.deleteProduct(id);

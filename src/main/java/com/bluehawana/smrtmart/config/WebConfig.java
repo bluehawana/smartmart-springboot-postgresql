@@ -11,25 +11,25 @@ import java.nio.file.Paths;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    @Value("${app.upload.path:src/main/resources/static/uploads}")
-    private String uploadPath;
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        Path uploadDir = Paths.get(uploadPath);
-        String absoluteUploadPath = uploadDir.toFile().getAbsolutePath();
+        // 处理 /api/uploads/** 请求，映射到 static/uploads 目录
+        registry.addResourceHandler("/api/uploads/**")
+                .addResourceLocations("classpath:/static/uploads/")
+                .setCachePeriod(3600);
 
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + absoluteUploadPath + "/")
+        // 其他静态资源
+        registry.addResourceHandler("/static/**")
+                .addResourceLocations("classpath:/static/")
                 .setCachePeriod(3600);
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-            .allowedOrigins("http://localhost:3000")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true);
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:3000")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }

@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/photos")
+@RequestMapping("/api/photos")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @Slf4j
 public class PhotoController {
