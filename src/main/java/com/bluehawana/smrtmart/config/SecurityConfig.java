@@ -34,7 +34,8 @@ public class SecurityConfig {
         // Add both localhost and IP address
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
-                "http://192.168.1.182:3000"  // Add your IP address
+                "http://192.168.1.182:3000",
+                "http://10.44.134.112:3000" //Add your IP address
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

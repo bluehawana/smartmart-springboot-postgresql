@@ -63,7 +63,7 @@ public class ProductService {
 
     private ProductDTO convertToDTO(Product product) {
         ProductDTO dto = new ProductDTO();
-        dto.setId(Math.toIntExact(product.getId()));
+        dto.setId(Math.toIntExact(Long.parseLong(product.getId())));
         dto.setName(product.getName());
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());

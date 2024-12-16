@@ -1,7 +1,7 @@
 package com.bluehawana.smrtmart;
 
-import com.bluehawana.smrtmart.model.*;
-import com.bluehawana.smrtmart.repository.*;
+import com.bluehawana.smrtmart.model.Product;
+import com.bluehawana.smrtmart.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -18,8 +18,6 @@ import java.util.*;
 public class DataInitializer {
 
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
-    private final CartRepository cartRepository;
 
     private static final List<InitialProduct> INITIAL_PRODUCTS = Arrays.asList(
             new InitialProduct(
@@ -66,50 +64,17 @@ public class DataInitializer {
             )
     );
 
-    private static final List<InitialUser> INITIAL_USERS = Arrays.asList(
-            new InitialUser("developer1@example.com", "developer1", Role.USER),
-            new InitialUser("developer2@example.com", "developer2", Role.USER),
-            new InitialUser("lee@bluehawana.com", "admin", Role.ADMIN)
-    );
-
     @Bean
     CommandLineRunner initDatabase() {
         return args -> {
-            log.info("Starting data initialization check...");
-            initializeData();
-            log.info("Data initialization check completed.");
+            log.info("Starting product initialization...");
+            initializeProducts();
+            log.info("Product initialization completed.");
         };
     }
 
     @Transactional
-    public void initializeData() {
-        try {
-            initializeProducts(); // Initialize products first (needed for cart items)
-            initializeUsers();    // Then users and their carts
-            log.info("Data initialization successful");
-        } catch (Exception e) {
-            log.error("Error during data initialization", e);
-            throw e;
-        }
-    }
-
-    private void initializeUsers() {
-        Set<String> existingEmails = new HashSet<>();
-        userRepository.findAll().forEach(user -> existingEmails.add(user.getEmail()));
-
-        for (InitialUser init : INITIAL_USERS) {
-            if (!existingEmails.contains(init.email())) {
-                User user = createUser(init);
-                user = userRepository.save(user);
-                createCartForUser(user);
-                log.info("Created new user: {}", init.email());
-            } else {
-                log.debug("User already exists: {}", init.email());
-            }
-        }
-    }
-
-    private void initializeProducts() {
+    public void initializeProducts() {
         Set<String> existingProducts = new HashSet<>();
         productRepository.findAll().forEach(product -> existingProducts.add(product.getName()));
 
@@ -124,52 +89,6 @@ public class DataInitializer {
         }
     }
 
-    private User createUser(InitialUser init) {
-        User user = new User();
-        user.setEmail(init.email());
-        user.setUsername(init.username());
-        user.setPassword("password"); // In production, use passwordEncoder
-        user.setRole(init.role());
-        user.setEnabled(true);
-        return user;
-    }
-
-    private void createCartForUser(User user) {
-        if (!cartRepository.existsByUserId(user.getId())) {
-            Cart cart = new Cart();
-            cart.setUserId(Long.valueOf(user.getId()));
-
-            // Save cart first
-            cart = cartRepository.save(cart);
-
-            // Add some sample products to cart
-            List<Product> products = productRepository.findAll();
-            if (!products.isEmpty()) {
-                // Add MacBook Pro to first user's cart
-                if (user.getEmail().equals("developer1@example.com") && products.size() >= 1) {
-                    CartItem item1 = new CartItem();
-                    item1.setCart(cart);
-                    item1.setProduct(products.get(0));  // MacBook Pro
-                    item1.setQuantity(1);
-                    cart.getItems().add(item1);
-                }
-
-                // Add AirPods to second user's cart
-                if (user.getEmail().equals("developer2@example.com") && products.size() >= 2) {
-                    CartItem item2 = new CartItem();
-                    item2.setCart(cart);
-                    item2.setProduct(products.get(1));  // AirPods
-                    item2.setQuantity(2);
-                    cart.getItems().add(item2);
-                }
-            }
-
-            cartRepository.save(cart);
-            log.info("Created cart with {} items for user: {}",
-                    cart.getItems().size(), user.getEmail());
-        }
-    }
-
     private Product createProduct(InitialProduct init) {
         Product product = new Product();
         product.setName(init.name());
@@ -181,21 +100,14 @@ public class DataInitializer {
     }
 
     public void generateData() {
-        initializeData();
     }
 }
 
-// Record classes for initial data
+// Record class for initial product data
 record InitialProduct(
         String name,
         String description,
         BigDecimal price,
         Integer stockQuantity,
         String imageUrl
-) {}
-
-record InitialUser(
-        String email,
-        String username,
-        Role role
 ) {}

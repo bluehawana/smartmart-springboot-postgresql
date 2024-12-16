@@ -1,58 +1,45 @@
 package com.bluehawana.smrtmart.controller;
 
-import com.bluehawana.smrtmart.dto.CartDTO;
 import com.bluehawana.smrtmart.dto.CartItemDTO;
 import com.bluehawana.smrtmart.dto.CartUpdateDTO;
 import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
-import com.bluehawana.smrtmart.service.CartService;
+import com.bluehawana.smrtmart.service.CartItemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/cart")  // Updated to match your API pattern
+@RequestMapping("/api/cart")
 @RequiredArgsConstructor
 @Slf4j
+@CrossOrigin(origins = "http://localhost:3000")
 public class CartController {
-    private final CartService cartService;
+    private final CartItemService cartItemService;
 
     @GetMapping
-    public ResponseEntity<CartDTO> getCurrentCart() {
-        log.info("Getting current cart");
-        try {
-            CartDTO cart = cartService.getCurrentCart(getCurrentUserId());
-            return ResponseEntity.ok(cart);
-        } catch (ResourceNotFoundException e) {
-            log.warn("Cart not found for user {}", getCurrentUserId());
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            log.error("Error getting cart for user {}", getCurrentUserId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
-        }
+    public ResponseEntity<List<CartItemDTO>> getCart() {
+        log.info("GET /api/cart - Fetching all cart items");
+        return ResponseEntity.ok(cartItemService.getAllItems());
     }
 
     @PostMapping("/items")
-    public ResponseEntity<?> addToCart(@RequestBody CartItemDTO cartItem) {
-        log.info("Adding item to cart: {}", cartItem);
+    public ResponseEntity<?> addToCart(@RequestBody CartItemDTO item) {
+        log.info("POST /api/cart/items - Adding item to cart: {}", item);
         try {
-            if (cartItem.getQuantity() <= 0) {
-                return ResponseEntity.badRequest()
-                        .body("Quantity must be greater than 0");
+            if (item.getQuantity() <= 0) {
+                return ResponseEntity.badRequest().body("Quantity must be greater than 0");
             }
-
-            CartDTO updatedCart = cartService.addToCart(getCurrentUserId(), cartItem);
-            return ResponseEntity.ok(updatedCart);
+            CartItemDTO added = cartItemService.addItem(item);
+            return ResponseEntity.ok(added);
         } catch (ResourceNotFoundException e) {
-            log.warn("Product not found: {}", cartItem.getProductId());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Product not found");
+            log.error("Failed to add item to cart: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error adding item to cart: {}", cartItem, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to add item to cart");
+            log.error("Error adding item to cart", e);
+            return ResponseEntity.badRequest().body("Failed to add item to cart");
         }
     }
 
@@ -60,63 +47,46 @@ public class CartController {
     public ResponseEntity<?> updateCartItem(
             @PathVariable Long itemId,
             @RequestBody CartUpdateDTO update) {
-        log.info("Updating cart item: {} with quantity: {}", itemId, update.getQuantity());
+        log.info("PUT /api/cart/items/{} - Updating quantity to: {}", itemId, update.getQuantity());
         try {
             if (update.getQuantity() < 0) {
-                return ResponseEntity.badRequest()
-                        .body("Quantity cannot be negative");
+                return ResponseEntity.badRequest().body("Quantity cannot be negative");
             }
-
-            CartDTO updatedCart = cartService.updateCartItem(
-                    getCurrentUserId(),
-                    (long) Math.toIntExact(itemId),
-                    update.getQuantity()
-            );
-            return ResponseEntity.ok(updatedCart);
+            CartItemDTO updated = cartItemService.updateQuantity(itemId, update.getQuantity());
+            if (updated == null) {
+                // Item was removed because quantity was 0
+                return ResponseEntity.ok().build();
+            }
+            return ResponseEntity.ok(updated);
         } catch (ResourceNotFoundException e) {
-            log.warn("Cart item not found: {}", itemId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Cart item not found");
-        } catch (Exception e) {
-            log.error("Error updating cart item: {}", itemId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to update cart item");
+            log.error("Cart item not found: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<?> removeFromCart(@PathVariable Long itemId) {
-        log.info("Removing item from cart: {}", itemId);
+        log.info("DELETE /api/cart/items/{} - Removing item from cart", itemId);
         try {
-            cartService.removeFromCart(getCurrentUserId(), (long) Math.toIntExact(itemId));
+            cartItemService.removeItem(itemId);
             return ResponseEntity.ok().build();
         } catch (ResourceNotFoundException e) {
-            log.warn("Cart item not found: {}", itemId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Cart item not found");
-        } catch (Exception e) {
-            log.error("Error removing item from cart: {}", itemId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to remove item from cart");
+            log.error("Failed to remove item: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping
     public ResponseEntity<?> clearCart() {
-        log.info("Clearing cart for user: {}", getCurrentUserId());
+        log.info("DELETE /api/cart - Clearing cart");
         try {
-            cartService.clearCart(getCurrentUserId());
+            cartItemService.getAllItems().forEach(item ->
+                    cartItemService.removeItem(item.getId())
+            );
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Error clearing cart for user: {}", getCurrentUserId(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to clear cart");
+            log.error("Error clearing cart", e);
+            return ResponseEntity.badRequest().body("Failed to clear cart");
         }
-    }
-
-    // TODO: Implement proper user authentication
-    private Long getCurrentUserId() {
-        // This should be replaced with actual user authentication logic
-        return (long) Math.toIntExact(3L);
     }
 }
