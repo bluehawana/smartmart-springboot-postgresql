@@ -1,92 +1,105 @@
 package com.bluehawana.smrtmart.controller;
 
 import com.bluehawana.smrtmart.dto.CartItemDTO;
-import com.bluehawana.smrtmart.dto.CartUpdateDTO;
-import com.bluehawana.smrtmart.exception.ResourceNotFoundException;
 import com.bluehawana.smrtmart.service.CartItemService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cart")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
-@Slf4j
-@CrossOrigin(origins = "http://localhost:3000")
 public class CartController {
+
     private final CartItemService cartItemService;
+
+    @PostMapping("/items")
+    public ResponseEntity<?> addToCart(@RequestBody CartItemRequest request) {
+        try {
+            CartItemDTO itemDTO = new CartItemDTO();
+            itemDTO.setProductId(Long.valueOf(String.valueOf(request.getProductId())));
+            itemDTO.setQuantity(request.getQuantity());
+
+            CartItemDTO addedItem = cartItemService.addItem(itemDTO);
+            return ResponseEntity.ok(addedItem);
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(Map.of(
+                            "success", false,
+                            "message", e.getMessage()
+                    ));
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<CartItemDTO>> getCart() {
-        log.info("GET /api/cart - Fetching all cart items");
         return ResponseEntity.ok(cartItemService.getAllItems());
     }
 
-    @PostMapping("/items")
-    public ResponseEntity<?> addToCart(@RequestBody CartItemDTO item) {
-        log.info("POST /api/cart/items - Adding item to cart: {}", item);
+    @DeleteMapping("/items/{id}")
+    public ResponseEntity<?> removeFromCart(@PathVariable Long id) {
         try {
-            if (item.getQuantity() <= 0) {
-                return ResponseEntity.badRequest().body("Quantity must be greater than 0");
-            }
-            CartItemDTO added = cartItemService.addItem(item);
-            return ResponseEntity.ok(added);
-        } catch (ResourceNotFoundException e) {
-            log.error("Failed to add item to cart: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            cartItemService.removeItem(id);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Item removed successfully"
+            ));
         } catch (Exception e) {
-            log.error("Error adding item to cart", e);
-            return ResponseEntity.badRequest().body("Failed to add item to cart");
+            return ResponseEntity.status(500)
+                    .body(Map.of(
+                            "success", false,
+                            "message", e.getMessage()
+                    ));
         }
     }
 
-    @PutMapping("/items/{itemId}")
-    public ResponseEntity<?> updateCartItem(
-            @PathVariable Long itemId,
-            @RequestBody CartUpdateDTO update) {
-        log.info("PUT /api/cart/items/{} - Updating quantity to: {}", itemId, update.getQuantity());
+    @PutMapping("/items/{id}")
+    public ResponseEntity<?> updateQuantity(
+            @PathVariable Long id,
+            @RequestBody UpdateQuantityRequest request
+    ) {
         try {
-            if (update.getQuantity() < 0) {
-                return ResponseEntity.badRequest().body("Quantity cannot be negative");
-            }
-            CartItemDTO updated = cartItemService.updateQuantity(itemId, update.getQuantity());
-            if (updated == null) {
-                // Item was removed because quantity was 0
-                return ResponseEntity.ok().build();
-            }
+            CartItemDTO updated = cartItemService.updateQuantity(id, request.getQuantity());
             return ResponseEntity.ok(updated);
-        } catch (ResourceNotFoundException e) {
-            log.error("Cart item not found: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<?> removeFromCart(@PathVariable Long itemId) {
-        log.info("DELETE /api/cart/items/{} - Removing item from cart", itemId);
-        try {
-            cartItemService.removeItem(itemId);
-            return ResponseEntity.ok().build();
-        } catch (ResourceNotFoundException e) {
-            log.error("Failed to remove item: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping
-    public ResponseEntity<?> clearCart() {
-        log.info("DELETE /api/cart - Clearing cart");
-        try {
-            cartItemService.getAllItems().forEach(item ->
-                    cartItemService.removeItem(item.getId())
-            );
-            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Error clearing cart", e);
-            return ResponseEntity.badRequest().body("Failed to clear cart");
+            return ResponseEntity.status(500)
+                    .body(Map.of(
+                            "success", false,
+                            "message", e.getMessage()
+                    ));
         }
     }
+
+    @PostMapping("/clear")
+    public ResponseEntity<?> clearCart() {
+        try {
+            cartItemService.clearCart();
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Cart cleared successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(Map.of(
+                            "success", false,
+                            "message", e.getMessage()
+                    ));
+        }
+    }
+}
+
+@Data
+class CartItemRequest {
+    private Long productId;
+    private Integer quantity;
+}
+
+@Data
+class UpdateQuantityRequest {
+    private Integer quantity;
 }

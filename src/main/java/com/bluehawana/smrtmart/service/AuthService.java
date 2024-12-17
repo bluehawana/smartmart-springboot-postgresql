@@ -1,8 +1,6 @@
-// EmailService.java
 package com.bluehawana.smrtmart.service;
 
 import com.bluehawana.smrtmart.dto.LoginRequest;
-import com.mailjet.client.ClientOptions;
 import com.mailjet.client.MailjetClient;
 import com.mailjet.client.MailjetRequest;
 import com.mailjet.client.MailjetResponse;
@@ -11,6 +9,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.mailjet.client.ClientOptions;
+import okhttp3.OkHttpClient;
 
 @Service
 public class AuthService {
@@ -24,7 +24,8 @@ public class AuthService {
     private String senderEmail;
 
     public void sendLoginOTP(String recipientEmail, String otp) {
-        MailjetClient client = new MailjetClient(apiKey, apiSecret, new ClientOptions("v3.1"));
+        // 直接使用简单的构造方法
+        MailjetClient client = new MailjetClient(apiKey, apiSecret);
         MailjetRequest request;
         MailjetResponse response;
 
@@ -33,7 +34,7 @@ public class AuthService {
                         .put(new JSONObject()
                                 .put(Emailv31.Message.FROM, new JSONObject()
                                         .put("Email", senderEmail)
-                                        .put("Name", "Your Eshop"))
+                                        .put("Name", "SmartMart"))
                                 .put(Emailv31.Message.TO, new JSONArray()
                                         .put(new JSONObject()
                                                 .put("Email", recipientEmail)))
